@@ -34,12 +34,13 @@ void debug(char *str)
 %x state_start_tag_need_closed
 %s state_expected_end_tag
 %x state_doctype_expected
+%x state_expected_attribute_value
 
 EC					([ \t\r\n]+)
 Digit				[0-9]
 Letter				[a-zA-Z]
 Title				({Letter}|[_:])({Letter}|{Digit}|[-._:])*
-AnyText				[^<&]*
+AnyText				[^<&>]*
 
 XMLVersionNum		"1.0"
 XMLVersionInfo		{EC}"version"{EC}?"="{EC}?(\"{XMLVersionNum}\"|"'"{XMLVersionNum}"'")
@@ -55,8 +56,8 @@ DoctypeInfo			"<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\" \"http
 
 Comment         	"<!--"[^-]*[-]{2,}([^->][^-]*[-]{2,})*">"
 
-Tags_1				"html"|"head"|"body"
-StartTag			{Tags_1}
+AttrName			{Title}
+AttrValue        	(\"[^<&>"]*\")|("'"[^<&>']*"'")
 
 %%
 
@@ -96,17 +97,11 @@ StartTag			{Tags_1}
 [ \t\r\n]			;
 }
 
-"<"{StartTag}		{
+"<"{Title}			{
 						debug("TAG_START");
 						stack_push(yytext + 1);
 						yy_push_state(state_start_tag_need_closed);
 						return TAG_START;
-					}
-
-"<"{Title}			{
-						debug("LEX_ERROR");
-						yyerror("unknown tag %s>", yytext);
-						return LEX_ERROR;
 					}
 
 <state_start_tag_need_closed>{
@@ -123,13 +118,39 @@ StartTag			{Tags_1}
 						return yytext[0];
 					}
 
+{AttrName}{EC}?[=]	{
+						debug("ATTR_NAME=");
+						yy_push_state(state_expected_attribute_value);
+						return ATTR_NAME;
+					}
+
+{AttrName}			{
+						debug("ATTR_NAME");
+						return ATTR_NAME;
+					}
+
+[ \t\r\n]			debug(yytext);
+}
+
+<state_expected_attribute_value>{
+{AttrValue}			{
+						debug("ATTR_VAL");
+						yy_pop_state();
+						return ATTR_VAL;
+					}
+
 [ \t\r\n]			debug(yytext);
 }
 
 <state_expected_end_tag>{
-"</"{StartTag}">"	{
+"</"{Title}">"		{
 						debug("TAG_END");
-						stack_pop(yytext, 0);
+
+						char tg[32];
+						sprintf(tg, "%s", yytext + 2);
+						*(tg + strlen(tg) - 1) = '\0';
+
+						stack_pop(tg, 0);
 						yy_pop_state();
 						return TAG_END;
 					}

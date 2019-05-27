@@ -9,19 +9,14 @@
 	#include <ctype.h>
 	#include <string.h>
 	#include <stdarg.h>
+	#include <locale.h>
 
 	extern int yylineno; // Номер строки с ошибкой.
 
-	/*
-	void yyerror(char *str)
-	{
-		printf("\nERROR: %s :: (line #%d of the input file)\n", str, yylineno);
-		system("pause");
-		exit(-1);
-	}*/
-
 	void yyerror(char *str, ...)
 	{
+		stack_show();
+
 		if (str == NULL) return;
 		int need_extra_out = 0;
 		int i; char c, *s, *p = (char *) &str;
@@ -66,7 +61,7 @@
 %start doc_page
 
 %token XML_INFO PI_INFO DOCTYPE_INFO COMMENT
-%token TAG_START TAG_ATTRIBUTE TAG_END_EMPTY TAG_END
+%token TAG_START ATTR_NAME ATTR_VAL TAG_END_EMPTY TAG_END
 %token LEX_ERROR
 
 %%
@@ -86,7 +81,8 @@ other			:	other COMMENT
 tag				:	TAG_START tag_attribute tag_tail
 				;
 
-tag_attribute	:	tag_attribute TAG_ATTRIBUTE
+tag_attribute	:	tag_attribute ATTR_NAME ATTR_VAL
+				|	tag_attribute ATTR_NAME
 				|	{ yyval = 0; }
 				;
 
@@ -94,7 +90,7 @@ tag_tail		:	TAG_END_EMPTY
 				|	'>' content TAG_END
 				;
 
-content			:	content tag
+content			:	content tag other
 				|	other
 				;
 
@@ -102,6 +98,7 @@ content			:	content tag
 
 	int main(int argc, char *argv[])
 	{
+		setlocale(LC_ALL, "rus");
 		extern FILE *yyin;
 
 		if (argc != 2)
