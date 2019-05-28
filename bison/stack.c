@@ -5,12 +5,21 @@
 #include <malloc.h>
 #include "y_tab.h"
 
+typedef struct // Описывает атрибуты, содержащиеся у данного тега.
+{
+	attr *attribute;
+	char *value;
+
+	struct attr_desc *next;
+} attr_desc;
+
 typedef struct
 {
 	char tag_name[32];
-	struct stack_elem *list_nested; // Список тегов, содержащихся в данном.
+	struct stack_elem *list_nested;			// Список тегов, содержащихся в данном.
+	attr_desc *list_attributes;				// Список атрибутов данного тега.
 
-	struct stack_elem *list_next; // Для образования общего списка тегов.
+	struct stack_elem *next;				// Для образования общего списка тегов.
 } stack_elem;
 
 stack_elem *head;
@@ -18,6 +27,7 @@ stack_elem *head;
 static stack_elem * stack_create_elem(char *tag_name);
 static void stack_free_elem(stack_elem *elem);
 static void stack_list_nested_push(stack_elem *elem, char *nested_name);
+static void stack_attr_desc_push(stack_elem *dest, attr *at, char *val);
 static int stack_tag_count(char *tag);
 static int stack_count();
 static int stack_is_list_contains(stack_elem *list, char *tg_name);
@@ -36,7 +46,7 @@ void stack_free()
 	while (tmp != NULL)
 	{
 		tmp_2 = tmp;
-		tmp = tmp->list_next;
+		tmp = tmp->next;
 		free(tmp_2);
 	}
 	head = NULL;
@@ -54,13 +64,13 @@ void stack_push(char *tag_name)
 	{
 		stack_elem *tmp = head;
 		while (tmp)
-			if (tmp->list_next == NULL)
+			if (tmp->next == NULL)
 			{
-				tmp->list_next = elem;
+				tmp->next = elem;
 				stack_list_nested_push(tmp, tag_name);
 				break;
 			} else
-				tmp = tmp->list_next;
+				tmp = tmp->next;
 	}
 }
 
@@ -71,10 +81,10 @@ void stack_pop(char *tag_name, int is_short_tag_form)
 	stack_elem *last_elem = head, *pre_last_elem = head;
 	if (head == NULL) { yyerror("stack_pop: stack is empty"); return; }
 
-	while (last_elem->list_next != NULL)
+	while (last_elem->next != NULL)
 	{
 		pre_last_elem = last_elem;
-		last_elem = last_elem->list_next;
+		last_elem = last_elem->next;
 	}
 
 	if (!is_short_tag_form && strcmp(last_elem->tag_name, tag_name) != 0)
@@ -83,19 +93,32 @@ void stack_pop(char *tag_name, int is_short_tag_form)
 	if (!is_short_tag_form)
 		stack_pop_check_standard(tag_name);
 
-	pre_last_elem->list_next = NULL;
+	pre_last_elem->next = NULL;
 	if (last_elem == head) head = NULL;
 	stack_free_elem(last_elem);
 }
 
 void stack_show()
 {
-	printf("\n- - -\nstack_print: output started\n");
+	printf("\n- - -\nstack_show: output started\n");
 
 	stack_elem *tmp = head;
 	while (tmp)
 	{
 		printf(" %s", tmp->tag_name);
+
+		if (tmp->list_attributes != NULL)
+		{
+			printf(" [");
+			attr_desc *t = tmp->list_attributes;
+			while (t)
+			{
+				printf(" %s", t->attribute->name);
+				t = t->next;
+			}
+			printf(" ]");
+		}
+
 		if (tmp->list_nested == NULL)
 			printf("\n");
 		else
@@ -105,33 +128,61 @@ void stack_show()
 			while (nested)
 			{
 				printf("%s ", nested->tag_name);
-				nested = nested->list_next;
+				nested = nested->next;
 			}
 			printf("\n");
 		}
 
-		tmp = tmp->list_next;
+		tmp = tmp->next;
 	}
 
-	printf("stack_print: output ended\n- - -\n");
+	printf("stack_show: output ended\n- - -\n");
+}
+
+// На входе строка формата: name="val"
+void stack_push_attribute(char *attr_name_val)
+{
+	stack_elem *last_elem = head, *pre_last_elem = head;
+	if (head == NULL) { yyerror("stack_push_attribute: stack is empty"); return; }
+
+	while (last_elem->next != NULL)
+	{
+		pre_last_elem = last_elem;
+		last_elem = last_elem->next;
+	}
+
+	// Парсим имя и значение атрибута.
+	char *attr_name = strtok(attr_name_val, "= \t\r\n");
+	char *v = strtok(NULL, "= \t\r\n") + 1;
+	v[strlen(v) - 1] = '\0';
+
+	char *value = (char *) malloc(sizeof(char) * (strlen(v) + 1));
+	sprintf(value, "%s", v);
+
+	attr *at = attr_get(attr_name);
+	if (at == NULL) { yyerror("stack_push_attribute: unknown attribute '%s'", attr_name); return; }
+
+	if (!attr_is_allowed_for_tag(last_elem->tag_name, at, value))
+		yyerror("stack_push_attribute: attribute '%s' is not allowed here", attr_name);
+	else
+		stack_attr_desc_push(last_elem, at, value);
 }
 
 // -----------------------------------------------------------------------------
 
-// Не управляет общим списком list_next. Только выделяет память.
+// Не управляет общим списком next. Только выделяет память.
 static stack_elem * stack_create_elem(char *tag_name)
 {
 	stack_elem *elem = (stack_elem *) malloc(sizeof(stack_elem));
-	if (elem == NULL) { yyerror("stack_push: memory allocation error"); return; }
+	if (elem == NULL) { yyerror("stack_create_elem: memory allocation error"); return NULL; }
 
+	memset(elem, 0, sizeof(stack_elem));
 	sprintf(elem->tag_name, "%s", tag_name);
-	elem->list_nested = NULL;
-	elem->list_next = NULL;
 
 	return elem;
 }
 
-// Не управляет общим списком list_next. Только очищает память.
+// Не управляет общим списком next. Только очищает память.
 static void stack_free_elem(stack_elem *elem)
 {
 	if (elem == NULL) return;
@@ -141,9 +192,9 @@ static void stack_free_elem(stack_elem *elem)
 s:	tmp = ptmp = elem->list_nested;
 	while (tmp)
 	{
-		if (tmp->list_next == NULL)
+		if (tmp->next == NULL)
 		{
-			ptmp->list_next = NULL;
+			ptmp->next = NULL;
 			if (tmp == elem->list_nested)
 				elem->list_nested = NULL;
 			stack_free_elem(tmp);
@@ -151,7 +202,7 @@ s:	tmp = ptmp = elem->list_nested;
 		} else
 		{
 			ptmp = tmp;
-			tmp = tmp->list_next;
+			tmp = tmp->next;
 		}
 	}
 
@@ -168,12 +219,33 @@ static void stack_list_nested_push(stack_elem *elem, char *nested_name)
 	if (tmp == NULL) { elem->list_nested = new; return; }
 
 	while (tmp)
-		if (tmp->list_next == NULL)
+		if (tmp->next == NULL)
 		{
-			tmp->list_next = new;
+			tmp->next = new;
 			break;
 		} else
-			tmp = tmp->list_next;
+			tmp = tmp->next;
+}
+
+static void stack_attr_desc_push(stack_elem *dest, attr *at, char *val)
+{
+	if (dest == NULL || at == NULL || val == NULL) return;
+
+	attr_desc *new = (attr_desc *) malloc(sizeof(attr_desc));
+	memset(new, 0, sizeof(attr_desc));
+	new->attribute = at;
+	new->value = val;
+
+	attr_desc *tmp = dest->list_attributes;
+	if (tmp == NULL) { dest->list_attributes = new; return; }
+
+	while (tmp)
+		if (tmp->next == NULL)
+		{
+			tmp->next = new;
+			break;
+		} else
+			tmp = tmp->next;
 }
 
 static int stack_tag_count(char *tag)
@@ -184,7 +256,7 @@ static int stack_tag_count(char *tag)
 	{
 		if (strcmp(tag, tmp->tag_name) == 0)
 			counter++;
-		tmp = tmp->list_next;
+		tmp = tmp->next;
 	}
 	return counter;
 }
@@ -196,7 +268,7 @@ static int stack_count()
 	while (tmp)
 	{
 		counter++;
-		tmp = tmp->list_next;
+		tmp = tmp->next;
 	}
 	return counter;
 }
@@ -208,7 +280,7 @@ static int stack_is_list_contains(stack_elem *list, char *tg_name)
 	{
 		if (strcmp(list->tag_name, tg_name) == 0)
 			return 1;
-		list = list->list_next;
+		list = list->next;
 	}
 	return 0;
 }
@@ -220,7 +292,7 @@ static stack_elem * stack_get_elem_by_id(int id)
 	while (tmp)
 	{
 		if (cid == id) return tmp;
-		tmp = tmp->list_next; cid++;
+		tmp = tmp->next; cid++;
 	}
 	return NULL;
 }

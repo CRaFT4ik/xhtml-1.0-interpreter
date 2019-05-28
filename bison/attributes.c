@@ -1,0 +1,405 @@
+#include <stdio.h>
+#include <ctype.h>
+#include <string.h>
+#include <stdlib.h>
+#include <malloc.h>
+#include <assert.h>
+#include <stdarg.h>
+#include "y_tab.h"
+
+#define NTAGS 100	// Макс. количество тегов.
+#define ATTR_VAL_LEN 100
+
+enum attr_rule_type
+{
+	ALLOWED,	// Правило разрешает использовать указанные теги.
+	DENIED,		// Правило запрещает использовать указанные теги.
+	EXCLUDED,	// Правило запрещает указанные теги и разрешает все остальные.
+	REQUIRED	// Правило требует, что к указанным тегам был применен данный атрибут.
+};
+
+// Структура, описывающая правила для атрибута тега.
+typedef struct st_attr_rule
+{
+	enum attr_rule_type type;			// Тип правила.
+	tag **tag_list;						// Список тегов, к которым это правило применено.
+	int allowed_values_cnt;
+	char *allowed_values[15];			// Список разрешенных значений атрибута для данных тегов. \
+										// Если список обнулен, разрешены все значения (все символы).
+	struct st_attr_rule *next;			// Для образования связного списка.
+} attr_rule;
+
+// Структура, описывающая атрибут для тега.
+typedef struct st_attr
+{
+	char name[32];						// Название атрибута.
+	attr_rule *rule_list;				// Список правил атрибута.
+
+	struct st_attr *next;				// Для образования связного списка.
+} attr;
+
+attr *list_attr;
+
+static attr * attr_create(char *name)
+{
+	attr *elem = (attr *) malloc(sizeof(attr));
+	if (elem == NULL) { yyerror("attr_create: memory allocation error"); return NULL; }
+
+	memset(elem, 0, sizeof(attr));
+	sprintf(elem->name, "%s", name);
+
+	if (list_attr == NULL) list_attr = elem;
+	else
+	{
+		attr *tmp = list_attr;
+		while (tmp)
+			if (tmp->next == NULL)
+			{
+				tmp->next = elem;
+				break;
+			} else
+				tmp = tmp->next;
+	}
+
+	return elem;
+}
+
+// Последний параметр всегда NULL.
+static tag ** attr_rule_create_tag_list(char *tg, ...)
+{
+	if (tg == NULL) return NULL;
+
+	tag **p = (tag **) malloc(NTAGS * sizeof(tag *));
+	memset(p, 0, sizeof(NTAGS * sizeof(tag *)));
+
+	for (int i = 0; i < NTAGS; i++)
+		p[i] = NULL;
+
+	int i = 0;
+	char **tmp = &tg;
+	while (*tmp != NULL)
+	{
+		tag *tmp_tg = tags_get(*tmp);
+		if (tmp_tg == NULL) yyerror("attr_rule_create_tag_list: unknown tag <%s>", tg);
+		p[i++] = tmp_tg;
+		tmp++;
+	}
+
+	return p;
+}
+
+static void attr_rule_push_allowed_value(attr_rule *rule, char *allowed_value)
+{
+	if (rule == NULL || allowed_value == NULL) return;
+
+	if (rule->allowed_values_cnt >= sizeof(rule->allowed_values)/sizeof(rule->allowed_values[0]))
+		yyerror("attr_rule_push_allowed_value: too small buffer for 'attr_rule->allowed_values'");
+
+	if (ATTR_VAL_LEN <= strlen(allowed_value))
+		yyerror("attr_rule_push_allowed_value: too small ATTR_VAL_LEN value");
+
+	char *s = (char *) malloc(ATTR_VAL_LEN * sizeof(char));
+	sprintf(s, "%s", allowed_value);
+
+	rule->allowed_values[rule->allowed_values_cnt++] = s;
+}
+
+// Последний параметр всегда NULL.
+static attr_rule * attr_create_rule(attr *a, enum attr_rule_type type, tag **tag_list, char *allowed_value, ...)
+{
+	assert(a != NULL);
+
+	attr_rule *elem = (attr_rule *) malloc(sizeof(attr_rule));
+	if (elem == NULL) { yyerror("attr_create_rule: memory allocation error"); return NULL; }
+
+	memset(elem, 0, sizeof(attr_rule));
+	elem->type = type;
+	elem->tag_list = tag_list;
+
+	if (allowed_value != NULL)
+	{
+		char **tmp = &allowed_value;
+		while (*tmp != NULL)
+		{
+			attr_rule_push_allowed_value(elem, *tmp);
+			tmp++;
+		}
+	}
+
+	// Добавляем правило к атрибуту.
+
+	attr_rule *rule_list = a->rule_list;
+	if (rule_list == NULL) a->rule_list = elem;
+	else
+	{
+		attr_rule *tmp = rule_list;
+		while (tmp)
+			if (tmp->next == NULL)
+			{
+				tmp->next = elem;
+				break;
+			} else
+				tmp = tmp->next;
+	}
+
+	return NULL;
+}
+
+attr * attr_get(char *name)
+{
+	attr *tmp = list_attr;
+	while (tmp)
+	{
+		if (strcmp(tmp->name, name) == 0)
+			return tmp;
+		tmp = tmp->next;
+	}
+
+	return NULL;
+}
+
+// Проверка, может ли тег tg_name содержать атрибут at со значением value.
+int attr_is_allowed_for_tag(char *tg_name, attr *at, char *value)
+{
+	assert(tg_name != NULL); assert(at != NULL); assert(value != NULL);
+
+	attr_rule *rule = at->rule_list;
+	while (rule)
+	{
+		enum attr_rule_type type = rule->type;
+		if (type == ALLOWED)
+		{
+			// Разрешающее правило без тегов - разрешает всем.
+			if (rule->tag_list == NULL) return 1;
+
+			for (int i = 0; i < NTAGS; i++)
+			{
+				tag *tg_tmp = *(rule->tag_list + i);
+				if (tg_tmp == NULL) break;
+
+				if (strcmp(tg_tmp->name, tg_name) == 0)
+					return 1;
+			}
+		} else if (type == DENIED)
+		{
+			// Запрещающее правило без тегов - запрещает всем.
+			if (rule->tag_list == NULL) return 0;
+
+			for (int i = 0; i < NTAGS; i++)
+			{
+				tag *tg_tmp = *(rule->tag_list + i);
+				if (tg_tmp == NULL) break;
+
+				if (strcmp(tg_tmp->name, tg_name) == 0)
+					return 0;
+			}
+		} else if (type == EXCLUDED)
+		{
+			// Исключающее правило без тегов - разрешаем всем.
+			if (rule->tag_list == NULL) return 1;
+
+			int contains = 0;
+			for (int i = 0; i < NTAGS; i++)
+			{
+				tag *tg_tmp = *(rule->tag_list + i);
+				if (tg_tmp == NULL) break;
+
+				printf("lol: %s\n", tg_tmp->name);
+				if (strcmp(tg_tmp->name, tg_name) == 0)
+				{ contains = 1; break; }
+			}
+			if (!contains) return 1;
+		} else if (type == REQUIRED)
+		{
+			// Требующее правило без тегов - пустое правило.
+			if (rule->tag_list == NULL) goto next;
+
+			for (int i = 0; i < NTAGS; i++)
+			{
+				tag *tg_tmp = *(rule->tag_list + i);
+				if (tg_tmp == NULL) break;
+
+				if (strcmp(tg_tmp->name, tg_name) == 0)
+					return 1;
+			}
+		}
+
+		next: rule = rule->next;
+	}
+
+	return 0;
+}
+
+void attr_init()
+{
+	list_attr = NULL;
+	attr *a; tag **l;
+
+	a = attr_create("xml:lang");
+	l = attr_rule_create_tag_list("base", "br", "param", "script", NULL);
+		attr_create_rule(a, EXCLUDED, l, NULL);
+
+	a = attr_create("xmlns");
+	l = attr_rule_create_tag_list("html", NULL);
+		attr_create_rule(a, REQUIRED, l, "http://www.w3.org/1999/xhtml", NULL);
+
+	a = attr_create("dir");
+	l = attr_rule_create_tag_list("bdo", "base", "br", "param", "script", NULL);
+		attr_create_rule(a, EXCLUDED, l, "ltr", "rtl", NULL);
+	l = attr_rule_create_tag_list("bdo", NULL);
+		attr_create_rule(a, REQUIRED, l, "ltr", "rtl", NULL);
+
+	a = attr_create("class");
+	l = attr_rule_create_tag_list("head", "title", "script", "style", "param", "base", "meta", "html", NULL);
+		attr_create_rule(a, EXCLUDED, l, NULL);
+
+	a = attr_create("map");
+	l = attr_rule_create_tag_list("map", NULL);
+		attr_create_rule(a, EXCLUDED, l, NULL);
+	l = attr_rule_create_tag_list("map", NULL);
+		attr_create_rule(a, REQUIRED, l, NULL);
+
+	a = attr_create("title");
+	l = attr_rule_create_tag_list("head", "title", "script", "html", "param", "meta", "base", NULL);
+		attr_create_rule(a, EXCLUDED, l, NULL);
+
+	a = attr_create("xml:space");
+	l = attr_rule_create_tag_list("pre", "style", "script", NULL);
+		attr_create_rule(a, ALLOWED, l, "preserve", NULL);
+
+	a = attr_create("style");
+	l = attr_rule_create_tag_list("head", "title", "script", "style", "param", "base", "meta", "html", NULL);
+		attr_create_rule(a, EXCLUDED, l, NULL);
+
+	a = attr_create("onclick");
+	l = attr_rule_create_tag_list("head", "title", "script", "style", "param", "base", "meta", "br", "html", NULL);
+		attr_create_rule(a, EXCLUDED, l, NULL);
+
+	a = attr_create("ondblclick");
+		attr_create_rule(a, EXCLUDED, l, NULL);
+
+	a = attr_create("onkeydown");
+		attr_create_rule(a, EXCLUDED, l, NULL);
+
+	a = attr_create("onkeypress");
+		attr_create_rule(a, EXCLUDED, l, NULL);
+
+	a = attr_create("onmousedown");
+	attr_create_rule(a, EXCLUDED, l, NULL);
+
+	a = attr_create("onmousemove");
+	attr_create_rule(a, EXCLUDED, l, NULL);
+
+	a = attr_create("onmouseout");
+	attr_create_rule(a, EXCLUDED, l, NULL);
+
+	a = attr_create("onmouseover");
+	attr_create_rule(a, EXCLUDED, l, NULL);
+
+	a = attr_create("onmouseup");
+	attr_create_rule(a, EXCLUDED, l, NULL);
+
+	a = attr_create("abbr");
+	l = attr_rule_create_tag_list("td", "th", NULL);
+	attr_create_rule(a, ALLOWED, l, NULL);
+
+	a = attr_create("accept");
+	l = attr_rule_create_tag_list("input", "form", NULL);
+	attr_create_rule(a, ALLOWED, l, NULL);
+
+	a = attr_create("accept-charset");
+	l = attr_rule_create_tag_list("form", NULL);
+	attr_create_rule(a, ALLOWED, l, NULL);
+
+	a = attr_create("accesskey");
+	l = attr_rule_create_tag_list("a", "textarea", "area", "button", "label", "input", "legend", NULL);
+	attr_create_rule(a, ALLOWED, l, NULL);
+
+	a = attr_create("action");
+	l = attr_rule_create_tag_list("form", NULL);
+	attr_create_rule(a, REQUIRED, l, NULL);
+
+	a = attr_create("align");
+	l = attr_rule_create_tag_list("colgroup", "tr", "tbody", "tfoot", "th", "td", "col", "thead", NULL);
+	attr_create_rule(a, ALLOWED, l, "left", "center", "right", "justify", "char", NULL);
+
+	a = attr_create("alt");
+	l = attr_rule_create_tag_list("input", NULL);
+	attr_create_rule(a, ALLOWED, l, NULL);
+	l = attr_rule_create_tag_list("img", "area", NULL);
+	attr_create_rule(a, REQUIRED, l, NULL);
+
+	a = attr_create("archive");
+	l = attr_rule_create_tag_list("object", NULL);
+	attr_create_rule(a, ALLOWED, l, NULL);
+
+	a = attr_create("axis");
+	l = attr_rule_create_tag_list("td", "th", NULL);
+	attr_create_rule(a, ALLOWED, l, NULL);
+
+	a = attr_create("cellpadding");
+	l = attr_rule_create_tag_list("table", NULL);
+	attr_create_rule(a, ALLOWED, l, NULL);
+
+	a = attr_create("cellspacing");
+	l = attr_rule_create_tag_list("table", NULL);
+	attr_create_rule(a, ALLOWED, l, NULL);
+
+	a = attr_create("char");
+	l = attr_rule_create_tag_list("colgroup", "tr", "tbody", "tfoot", "th", "td", "col", "thead", NULL);
+	attr_create_rule(a, ALLOWED, l, NULL);
+
+	a = attr_create("charoff");
+	l = attr_rule_create_tag_list("colgroup", "tr", "tbody", "tfoot", "th", "td", "col", "thead", NULL);
+	attr_create_rule(a, ALLOWED, l, NULL);
+
+	a = attr_create("charset");
+	l = attr_rule_create_tag_list("a", "link", "script", NULL);
+	attr_create_rule(a, ALLOWED, l, NULL);
+
+	a = attr_create("checked");
+	l = attr_rule_create_tag_list("input", NULL);
+	attr_create_rule(a, ALLOWED, l, "checked", NULL);
+
+	a = attr_create("cite");
+	l = attr_rule_create_tag_list("q", "blockquote", "del", "ins", NULL);
+	attr_create_rule(a, ALLOWED, l, NULL);
+
+	a = attr_create("classid");
+	l = attr_rule_create_tag_list("object", NULL);
+	attr_create_rule(a, ALLOWED, l, NULL);
+
+	a = attr_create("codebase");
+	l = attr_rule_create_tag_list("object", NULL);
+	attr_create_rule(a, ALLOWED, l, NULL);
+
+	a = attr_create("codetype");
+	l = attr_rule_create_tag_list("object", NULL);
+	attr_create_rule(a, ALLOWED, l, NULL);
+
+	a = attr_create("cols");
+	l = attr_rule_create_tag_list("textarea", NULL);
+	attr_create_rule(a, REQUIRED, l, NULL);
+
+	a = attr_create("colspan");
+	l = attr_rule_create_tag_list("td", "th", NULL);
+	attr_create_rule(a, ALLOWED, l, NULL);
+
+	a = attr_create("content");
+	l = attr_rule_create_tag_list("meta", NULL);
+	attr_create_rule(a, REQUIRED, l, NULL);
+
+	a = attr_create("coords");
+	l = attr_rule_create_tag_list("a", "area", NULL);
+	attr_create_rule(a, ALLOWED, l, NULL);
+
+	a = attr_create("data");
+	l = attr_rule_create_tag_list("object", NULL);
+	attr_create_rule(a, ALLOWED, l, NULL);
+
+	
+
+	// TODO: сделать проверку для REQUIRED, сделать проверку на допустимые значения.
+}
+
+void attr_free() {}

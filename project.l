@@ -1,5 +1,6 @@
 /*
 	http://westes.github.io/flex/manual/
+	https://www.w3.org/2010/04/xhtml10-strict.html
 
 	+ - 1 или более совпадений подряд
 	* - 0 или более совпадений подряд
@@ -16,6 +17,7 @@
 #include <stdlib.h>
 
 #include "tags.c"
+#include "attributes.c"
 #include "stack.c"
 
 #define DEBUG
@@ -34,13 +36,12 @@ void debug(char *str)
 %x state_start_tag_need_closed
 %s state_expected_end_tag
 %x state_doctype_expected
-%x state_expected_attribute_value
 
 EC					([ \t\r\n]+)
 Digit				[0-9]
 Letter				[a-zA-Z]
 Title				({Letter}|[_:])({Letter}|{Digit}|[-._:])*
-AnyText				[^<&>]*
+AnyText				[^<&]*
 
 XMLVersionNum		"1.0"
 XMLVersionInfo		{EC}"version"{EC}?"="{EC}?(\"{XMLVersionNum}\"|"'"{XMLVersionNum}"'")
@@ -52,12 +53,13 @@ UnknownInfo     	"<?"{Title}[^?]*[?]+([^?>][^?]*[?]+)*">"
 PIInfo          	"<?"{Title}({EC}[^?]*)?[?]+([^?>][^?]*[?]+)*">"
 
 DoctypeDecl			"<!"[dD][oO][cC][tT][yY][pP][eE][^<!>]*">"
-DoctypeInfo			"<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\">"
+DoctypeInfo			"<!DOCTYPE"{EC}+"html"{EC}+"PUBLIC"{EC}+"\"-//W3C//DTD XHTML 1.0 Strict//EN\""{EC}+("\"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\""|"\"DTD/xhtml1-strict.dtd\"")">"
 
-Comment         	"<!--"[^-]*[-]{2,}([^->][^-]*[-]{2,})*">"
+Comment         	"<!--"([^-]|-[^-]|--+[^->])*-*"-->"
 
 AttrName			{Title}
-AttrValue        	(\"[^<&>"]*\")|("'"[^<&>']*"'")
+AttrValue        	(\"[^<&"]*\")|("'"[^<&']*"'")
+Attribute			{AttrName}{EC}?[=]{EC}?{AttrValue}
 
 %%
 
@@ -89,7 +91,7 @@ AttrValue        	(\"[^<&>"]*\")|("'"[^<&>']*"'")
 					}
 
 {DoctypeDecl}		{
-						yyerror("wrong DOCTYPE declaration format");
+						yyerror("wrong DOCTYPE declaration format; use: %s", "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\">");
 						yy_pop_state();
 						return LEX_ERROR;
 					}
@@ -98,7 +100,7 @@ AttrValue        	(\"[^<&>"]*\")|("'"[^<&>']*"'")
 }
 
 "<"{Title}			{
-						debug("TAG_START");
+						debug("<TAG_START");
 						stack_push(yytext + 1);
 						yy_push_state(state_start_tag_need_closed);
 						return TAG_START;
@@ -106,45 +108,37 @@ AttrValue        	(\"[^<&>"]*\")|("'"[^<&>']*"'")
 
 <state_start_tag_need_closed>{
 "/>"				{
-						debug("TAG_END_EMPTY");
+						debug("/>");
 						stack_pop(yytext, 1);
 						yy_pop_state();
 						return TAG_END_EMPTY;
 					}
 
 [>]					{
+						debug(">");
 						yy_pop_state();
 						yy_push_state(state_expected_end_tag);
 						return yytext[0];
 					}
 
-{AttrName}{EC}?[=]	{
-						debug("ATTR_NAME=");
-						yy_push_state(state_expected_attribute_value);
-						return ATTR_NAME;
+{Attribute}			{
+						debug("ATTRIBUTE");
+						stack_push_attribute(yytext);
+						return ATTRIBUTE;
 					}
 
-{AttrName}			{
-						debug("ATTR_NAME");
-						return ATTR_NAME;
+[ \t\r\n]			{	debug(yytext);	}
+
+[^<&>"']			{
+						debug("LEX_ERROR");
+						yyerror("unknown symbol '%s'", yytext);
+						return LEX_ERROR;
 					}
-
-[ \t\r\n]			debug(yytext);
-}
-
-<state_expected_attribute_value>{
-{AttrValue}			{
-						debug("ATTR_VAL");
-						yy_pop_state();
-						return ATTR_VAL;
-					}
-
-[ \t\r\n]			debug(yytext);
 }
 
 <state_expected_end_tag>{
 "</"{Title}">"		{
-						debug("TAG_END");
+						debug("<TAG_END>");
 
 						char tg[32];
 						sprintf(tg, "%s", yytext + 2);
@@ -163,6 +157,6 @@ AttrValue        	(\"[^<&>"]*\")|("'"[^<&>']*"'")
 					}
 }
 
-[\r\n]+				debug(yytext);
+[\r\n]+				{	debug(yytext);	}
 
 %%

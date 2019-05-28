@@ -61,7 +61,7 @@
 %start doc_page
 
 %token XML_INFO PI_INFO DOCTYPE_INFO COMMENT
-%token TAG_START ATTR_NAME ATTR_VAL TAG_END_EMPTY TAG_END
+%token TAG_START ATTRIBUTE TAG_END_EMPTY TAG_END
 %token LEX_ERROR
 
 %%
@@ -81,8 +81,7 @@ other			:	other COMMENT
 tag				:	TAG_START tag_attribute tag_tail
 				;
 
-tag_attribute	:	tag_attribute ATTR_NAME ATTR_VAL
-				|	tag_attribute ATTR_NAME
+tag_attribute	:	tag_attribute ATTRIBUTE
 				|	{ yyval = 0; }
 				;
 
@@ -117,6 +116,7 @@ content			:	content tag other
 		}
 
 		tags_init();
+		attr_init();
 		stack_init();
 
 		if (!yyparse())
@@ -125,6 +125,7 @@ content			:	content tag other
 			printf("\nyyparse(): error during parsing! :(\n\n");
 
 		stack_free();
+		attr_free();
 		tags_free();
 
 		system("pause");
