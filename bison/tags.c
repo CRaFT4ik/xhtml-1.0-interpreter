@@ -14,6 +14,8 @@
 typedef struct tag_st
 {
 	char name[32];
+	int is_empty_tag;				 // Является ли тег пустым (закрывающая форма <tg />).
+
 	struct tag_st *may_list[NTAGS];	 // Список тегов, которые может содержать \
 									 // данный тег.
 	struct tag_st *min_list[NTAGS];	 // Список тегов, которые должен содержать \
@@ -85,11 +87,16 @@ static tag * tags_alloc(char *name)
 tag * tags_add_empty(char *name)
 {
 	tag *tmp_tg = tags_get(name), *tg;
-	if (tmp_tg != NULL) return tmp_tg;
+	if (tmp_tg != NULL)
+	{
+		tmp_tg->is_empty_tag = 1;
+		return tmp_tg;
+	}
 
 	tg = tags_alloc(name);
 	memset(tg, 0, sizeof(tag));
 	sprintf(tg->name, "%s", name);
+	tg->is_empty_tag = 1;
 
 	return tg;
 }
@@ -100,6 +107,7 @@ tag * tags_add_may_list(char *name, ...)
 {
 	tag *tg = tags_add_empty(name);
 	memset(tg->may_list, 0, sizeof(tg->may_list));
+	tg->is_empty_tag = 0;
 
 	int i = 0;
 	char **tmp = &name;
@@ -119,6 +127,7 @@ tag * tags_add_min_list(char *name, ...)
 {
 	tag *tg = tags_add_empty(name);
 	memset(tg->min_list, 0, sizeof(tg->min_list));
+	tg->is_empty_tag = 0;
 
 	int i = 0;
 	char **tmp = &name;
@@ -138,6 +147,7 @@ tag * tags_add_must_list(char *name, ...)
 {
 	tag *tg = tags_add_empty(name);
 	memset(tg->must_list, 0, sizeof(tg->must_list));
+	tg->is_empty_tag = 0;
 
 	int i = 0;
 	char **tmp = &name;

@@ -6,7 +6,11 @@
 	* - 0 или более совпадений подряд
 	? - 0 или 1 совпадение
 
-	// TODO: сделать проверку для REQUIRED, сделать проверку на допустимые значения.
+	TODO:
+		[+] сделать проверку на пустоту тега (может ли иметь вид </tag> или <tag />);
+		[-] сделать проверку для REQUIRED;
+		[-] сделать проверку на допустимые значения;
+		[-] нет очистки памяти для attributes.c.
 */
 
 %{
@@ -93,7 +97,7 @@ Attribute			{AttrName}{EC}?[=]{EC}?{AttrValue}
 						return CDATA;
 					}
 
-[ \t\r\n]|.?		; // Пропускаем любые символы. 
+[ \t\r\n]|.?		; // Пропускаем любые символы.
 }
 
 {DoctypeDecl}		{
@@ -156,7 +160,7 @@ Attribute			{AttrName}{EC}?[=]{EC}?{AttrValue}
 
 <state_expected_end_tag>{
 "</"{Title}">"		{
-						debug("<TAG_END>");
+						debug("</TAG_END>");
 
 						char tg[32];
 						sprintf(tg, "%s", yytext + 2);

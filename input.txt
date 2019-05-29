@@ -17,6 +17,7 @@ PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
 			<option>Tuesday</option>
 			<option>Wednesday</option>
 		</select>
+		<br />
 	</p>
 	
 	<div id="quickSearch">

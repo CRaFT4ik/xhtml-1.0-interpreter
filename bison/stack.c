@@ -90,8 +90,7 @@ void stack_pop(char *tag_name, int is_short_tag_form)
 	if (!is_short_tag_form && strcmp(last_elem->tag_name, tag_name) != 0)
 		yyerror("stack_pop: wrong closure tag");
 
-	if (!is_short_tag_form)
-		stack_pop_check_standard(tag_name);
+	stack_pop_check_standard(tag_name, is_short_tag_form);
 
 	pre_last_elem->next = NULL;
 	if (last_elem == head) head = NULL;
@@ -299,33 +298,40 @@ static stack_elem * stack_get_elem_by_id(int id)
 }
 
 // Проверка соответствия иерархии тегов стандарту XHTML 1.0.
-static void stack_pop_check_standard(char *tg_name)
+static void stack_pop_check_standard(char *tg_name, int is_short_tag_form)
 {
-	tag *tg = tags_get(tg_name);
-	if (tg == NULL) yyerror("stack_pop_check_standard: unknown tag %s", tg_name);
-
 	stack_elem *last_elem = stack_get_elem_by_id(stack_count() - 1);
-	if (last_elem != NULL)
-	{
-		{ // Проверка min_list списка (см. объявление).
-			int min_contains = (tg->min_list[0] == NULL);
-			for (int i = 0; i < sizeof(tg->min_list) / sizeof(tg->min_list[0]); i++)
-			{
-				if (tg->min_list[i] == NULL) break;
-				if (stack_is_list_contains(last_elem->list_nested, tg->min_list[i]->name))
-				{ min_contains = 1; break; }
-			}
-			if (!min_contains)
-				yyerror("stack_pop_check_standard: wrong internal <%s> tag structure", tg_name);
-		}
+	if (last_elem == NULL) yyerror("stack_pop_check_standard: stack is empty");
 
-		{ // Проверка must_list списка (см. объявление).
-			for (int i = 0; i < sizeof(tg->must_list) / sizeof(tg->must_list[0]); i++)
-			{
-				if (tg->must_list[i] == NULL) break;
-				if (!stack_is_list_contains(last_elem->list_nested, tg->must_list[i]->name))
-					yyerror("stack_pop_check_standard: tag <%s> must contains tag %s", tg_name, tg->must_list[i]->name);
-			}
+	tag *last_tg = tags_get(last_elem->tag_name);
+	if (is_short_tag_form && last_tg->is_empty_tag)
+		return;
+	else if (is_short_tag_form && !last_tg->is_empty_tag)
+		yyerror("stack_pop_check_standard: tag '%s' must have </%s> end tag form", last_tg->name, last_tg->name);
+	else if (!is_short_tag_form && last_tg->is_empty_tag)
+		yyerror("stack_pop_check_standard: tag '%s' must be empty and have <%s /> end tag form", last_tg->name, last_tg->name);
+
+	tag *tg = tags_get(tg_name);
+	if (tg == NULL) yyerror("stack_pop_check_standard: unknown tag '%s'", tg_name);
+
+	{ // Проверка min_list списка (см. объявление).
+		int min_contains = (tg->min_list[0] == NULL);
+		for (int i = 0; i < sizeof(tg->min_list) / sizeof(tg->min_list[0]); i++)
+		{
+			if (tg->min_list[i] == NULL) break;
+			if (stack_is_list_contains(last_elem->list_nested, tg->min_list[i]->name))
+			{ min_contains = 1; break; }
+		}
+		if (!min_contains)
+			yyerror("stack_pop_check_standard: wrong internal <%s> tag structure", tg_name);
+	}
+
+	{ // Проверка must_list списка (см. объявление).
+		for (int i = 0; i < sizeof(tg->must_list) / sizeof(tg->must_list[0]); i++)
+		{
+			if (tg->must_list[i] == NULL) break;
+			if (!stack_is_list_contains(last_elem->list_nested, tg->must_list[i]->name))
+				yyerror("stack_pop_check_standard: tag <%s> must contains tag %s", tg_name, tg->must_list[i]->name);
 		}
 	}
 }

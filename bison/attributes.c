@@ -236,46 +236,46 @@ void attr_init()
 
 	a = attr_create("xml:lang");
 	l = attr_rule_create_tag_list("base", "br", "param", "script", NULL);
-		attr_create_rule(a, EXCLUDED, l, NULL);
+	attr_create_rule(a, EXCLUDED, l, NULL);
 
 	a = attr_create("xmlns");
 	l = attr_rule_create_tag_list("html", NULL);
-		attr_create_rule(a, REQUIRED, l, "http://www.w3.org/1999/xhtml", NULL);
+	attr_create_rule(a, REQUIRED, l, "http://www.w3.org/1999/xhtml", NULL);
 
 	a = attr_create("class");
 	l = attr_rule_create_tag_list("head", "title", "script", "style", "param", "base", "meta", "html", NULL);
-		attr_create_rule(a, EXCLUDED, l, NULL);
+	attr_create_rule(a, EXCLUDED, l, NULL);
 
 	a = attr_create("map");
 	l = attr_rule_create_tag_list("map", NULL);
-		attr_create_rule(a, EXCLUDED, l, NULL);
+	attr_create_rule(a, EXCLUDED, l, NULL);
 	l = attr_rule_create_tag_list("map", NULL);
-		attr_create_rule(a, REQUIRED, l, NULL);
+	attr_create_rule(a, REQUIRED, l, NULL);
 
 	a = attr_create("title");
 	l = attr_rule_create_tag_list("head", "title", "script", "html", "param", "meta", "base", NULL);
-		attr_create_rule(a, EXCLUDED, l, NULL);
+	attr_create_rule(a, EXCLUDED, l, NULL);
 
 	a = attr_create("xml:space");
 	l = attr_rule_create_tag_list("pre", "style", "script", NULL);
-		attr_create_rule(a, ALLOWED, l, "preserve", NULL);
+	attr_create_rule(a, ALLOWED, l, "preserve", NULL);
 
 	a = attr_create("style");
 	l = attr_rule_create_tag_list("head", "title", "script", "style", "param", "base", "meta", "html", NULL);
-		attr_create_rule(a, EXCLUDED, l, NULL);
+	attr_create_rule(a, EXCLUDED, l, NULL);
 
 	a = attr_create("onclick");
 	l = attr_rule_create_tag_list("head", "title", "script", "style", "param", "base", "meta", "br", "html", NULL);
-		attr_create_rule(a, EXCLUDED, l, NULL);
+	attr_create_rule(a, EXCLUDED, l, NULL);
 
 	a = attr_create("ondblclick");
-		attr_create_rule(a, EXCLUDED, l, NULL);
+	attr_create_rule(a, EXCLUDED, l, NULL);
 
 	a = attr_create("onkeydown");
-		attr_create_rule(a, EXCLUDED, l, NULL);
+	attr_create_rule(a, EXCLUDED, l, NULL);
 
 	a = attr_create("onkeypress");
-		attr_create_rule(a, EXCLUDED, l, NULL);
+	attr_create_rule(a, EXCLUDED, l, NULL);
 
 	a = attr_create("onmousedown");
 	attr_create_rule(a, EXCLUDED, l, NULL);
