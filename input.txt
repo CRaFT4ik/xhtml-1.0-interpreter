@@ -18,5 +18,20 @@ PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
 			<option>Wednesday</option>
 		</select>
 	</p>
+	
+	<div id="quickSearch">
+		<form method="get" action="search.php" name="qsearch">
+		<div>
+			<input class="inputText" />
+			<input type="hidden" id="act" name="act" value="quick" />
+			<input style="display: none;" class="inputSubmit" type="submit" value="Go" />
+			<script type="text/javascript">
+				//<![CDATA[
+					placeholderSetup('quickquery');
+				//]]>
+			</script>
+		</div>
+		</form>
+	</div>
 </body>
 </html>

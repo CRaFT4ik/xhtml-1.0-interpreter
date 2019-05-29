@@ -3,7 +3,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <malloc.h>
-#include "y_tab.h"
+#include "y.tab.h"
 
 typedef struct // Описывает атрибуты, содержащиеся у данного тега.
 {
@@ -159,13 +159,14 @@ void stack_push_attribute(char *attr_name_val)
 	char *value = (char *) malloc(sizeof(char) * (strlen(v) + 1));
 	sprintf(value, "%s", v);
 
-	attr *at = attr_get(attr_name);
-	if (at == NULL) { yyerror("stack_push_attribute: unknown attribute '%s'", attr_name); return; }
+	// !!!
+	//attr *at = attr_get(attr_name);
+	//if (at == NULL) { yyerror("stack_push_attribute: unknown attribute '%s'", attr_name); return; }
 
-	if (!attr_is_allowed_for_tag(last_elem->tag_name, at, value))
-		yyerror("stack_push_attribute: attribute '%s' is not allowed here", attr_name);
-	else
-		stack_attr_desc_push(last_elem, at, value);
+	//if (!attr_is_allowed_for_tag(last_elem->tag_name, at, value))
+	//	yyerror("stack_push_attribute: attribute '%s' is not allowed here", attr_name);
+	//else
+	//	stack_attr_desc_push(last_elem, at, value);
 }
 
 // -----------------------------------------------------------------------------
@@ -344,6 +345,6 @@ static void stack_push_check_standard(char *tg_name)
 		if (!tags_is_may_list_contains(tg, tg_name)
 		&&	!tags_is_min_list_contains(tg, tg_name)
 		&&	!tags_is_must_list_contains(tg, tg_name))
-			yyerror("tag <%s> is not allowed here", tg_name);
+			yyerror("tag <%s> is not allowed inside tag <%s>", tg_name, tg->name);
 	}
 }

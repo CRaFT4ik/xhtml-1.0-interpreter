@@ -7,7 +7,7 @@
 #include <malloc.h>
 #include <assert.h>
 #include <stdarg.h>
-#include "y_tab.h"
+#include "y.tab.h"
 
 #define NTAGS 100	// Макс. количество тегов.
 

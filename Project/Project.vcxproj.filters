@@ -15,17 +15,12 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\bison\y_tab.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\bison\lex.yy.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\bison\y_tab.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
+    <ClCompile Include="..\bison\y.tab.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\project.y">
@@ -34,5 +29,10 @@
     <None Include="..\project.l">
       <Filter>Resource Files</Filter>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\bison\y.tab.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

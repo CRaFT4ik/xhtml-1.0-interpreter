@@ -96,7 +96,7 @@
     <CustomBuildStep>
       <Outputs>C:\not_existing_file.txt</Outputs>
       <Command>cd "$(ProjectDir)..\bison\"
-flex.exe ..\project.l
+flex.exe --wincompat ..\project.l
 bison.exe -y -d -v ..\project.y</Command>
     </CustomBuildStep>
   </ItemDefinitionGroup>
@@ -110,7 +110,7 @@ bison.exe -y -d -v ..\project.y</Command>
     </ClCompile>
     <CustomBuildStep>
       <Command>cd "$(ProjectDir)..\bison\"
-flex.exe ..\project.l
+flex.exe --wincompat ..\project.l
 bison.exe -y -d -v ..\project.y</Command>
       <Outputs>C:\not_existing_file.txt</Outputs>
     </CustomBuildStep>
@@ -131,7 +131,7 @@ bison.exe -y -d -v ..\project.y</Command>
     </Link>
     <CustomBuildStep>
       <Command>cd "$(ProjectDir)..\bison\"
-flex.exe ..\project.l
+flex.exe --wincompat ..\project.l
 bison.exe -y -d -v ..\project.y</Command>
       <Outputs>C:\not_existing_file.txt</Outputs>
     </CustomBuildStep>
@@ -152,21 +152,21 @@ bison.exe -y -d -v ..\project.y</Command>
     </Link>
     <CustomBuildStep>
       <Command>cd "$(ProjectDir)..\bison\"
-flex.exe ..\project.l
+flex.exe --wincompat ..\project.l
 bison.exe -y -d -v ..\project.y</Command>
       <Outputs>C:\not_existing_file.txt</Outputs>
     </CustomBuildStep>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\bison\lex.yy.c" />
-    <ClCompile Include="..\bison\y_tab.c" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\bison\y_tab.h" />
+    <ClCompile Include="..\bison\y.tab.c" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\project.l" />
     <None Include="..\project.y" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\bison\y.tab.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

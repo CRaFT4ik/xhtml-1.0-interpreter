@@ -5,7 +5,7 @@
 #include <malloc.h>
 #include <assert.h>
 #include <stdarg.h>
-#include "y_tab.h"
+#include "y.tab.h"
 
 #define NTAGS 100	// Макс. количество тегов.
 #define ATTR_VAL_LEN 100
@@ -204,7 +204,6 @@ int attr_is_allowed_for_tag(char *tg_name, attr *at, char *value)
 				tag *tg_tmp = *(rule->tag_list + i);
 				if (tg_tmp == NULL) break;
 
-				printf("lol: %s\n", tg_tmp->name);
 				if (strcmp(tg_tmp->name, tg_name) == 0)
 				{ contains = 1; break; }
 			}
@@ -242,12 +241,6 @@ void attr_init()
 	a = attr_create("xmlns");
 	l = attr_rule_create_tag_list("html", NULL);
 		attr_create_rule(a, REQUIRED, l, "http://www.w3.org/1999/xhtml", NULL);
-
-	a = attr_create("dir");
-	l = attr_rule_create_tag_list("bdo", "base", "br", "param", "script", NULL);
-		attr_create_rule(a, EXCLUDED, l, "ltr", "rtl", NULL);
-	l = attr_rule_create_tag_list("bdo", NULL);
-		attr_create_rule(a, REQUIRED, l, "ltr", "rtl", NULL);
 
 	a = attr_create("class");
 	l = attr_rule_create_tag_list("head", "title", "script", "style", "param", "base", "meta", "html", NULL);
@@ -397,9 +390,235 @@ void attr_init()
 	l = attr_rule_create_tag_list("object", NULL);
 	attr_create_rule(a, ALLOWED, l, NULL);
 
-	
+	a = attr_create("datetime");
+	l = attr_rule_create_tag_list("del", "ins", NULL);
+	attr_create_rule(a, ALLOWED, l, NULL);
 
-	// TODO: сделать проверку для REQUIRED, сделать проверку на допустимые значения.
+	a = attr_create("declare");
+	l = attr_rule_create_tag_list("object", NULL);
+	attr_create_rule(a, ALLOWED, l, "declare", NULL);
+
+	a = attr_create("defer");
+	l = attr_rule_create_tag_list("script", NULL);
+	attr_create_rule(a, ALLOWED, l, "defer", NULL);
+
+	a = attr_create("dir");
+	l = attr_rule_create_tag_list("bdo", "base", "br", "param", "script", NULL);
+	attr_create_rule(a, EXCLUDED, l, "ltr", "rtl", NULL);
+	l = attr_rule_create_tag_list("bdo", NULL);
+	attr_create_rule(a, REQUIRED, l, "ltr", "rtl", NULL);
+
+	a = attr_create("disabled");
+	l = attr_rule_create_tag_list("option", "textarea", "button", "optgroup", "input", "select", NULL);
+	attr_create_rule(a, ALLOWED, l, "disabled", NULL);
+
+	a = attr_create("enctype");
+	l = attr_rule_create_tag_list("form", NULL);
+	attr_create_rule(a, ALLOWED, l, NULL);
+
+	a = attr_create("for");
+	l = attr_rule_create_tag_list("label", NULL);
+	attr_create_rule(a, ALLOWED, l, NULL);
+
+	a = attr_create("frame");
+	l = attr_rule_create_tag_list("table", NULL);
+	attr_create_rule(a, ALLOWED, l, "void", "above", "below", "hsides", "lhs", "rhs", "vsides", "box", "border", NULL);
+
+	a = attr_create("headers");
+	l = attr_rule_create_tag_list("td", "th", NULL);
+	attr_create_rule(a, ALLOWED, l, NULL);
+
+	a = attr_create("height");
+	l = attr_rule_create_tag_list("object", "img", NULL);
+	attr_create_rule(a, ALLOWED, l, NULL);
+
+	a = attr_create("href");
+	l = attr_rule_create_tag_list("base", NULL);
+	attr_create_rule(a, REQUIRED, l, NULL);
+	l = attr_rule_create_tag_list("a", "link", "area", NULL);
+	attr_create_rule(a, ALLOWED, l, NULL);
+
+	a = attr_create("hreflang");
+	l = attr_rule_create_tag_list("a", "link", NULL);
+	attr_create_rule(a, ALLOWED, l, NULL);
+
+	a = attr_create("http-equiv");
+	l = attr_rule_create_tag_list("meta", NULL);
+	attr_create_rule(a, ALLOWED, l, NULL);
+
+	a = attr_create("ismap");
+	l = attr_rule_create_tag_list("img", NULL);
+	attr_create_rule(a, ALLOWED, l, "ismap", NULL);
+
+	a = attr_create("label");
+	l = attr_rule_create_tag_list("option", NULL);
+	attr_create_rule(a, ALLOWED, l, NULL);
+	l = attr_rule_create_tag_list("optgroup", NULL);
+	attr_create_rule(a, REQUIRED, l, NULL);
+
+	a = attr_create("lang");
+	l = attr_rule_create_tag_list("base", "br", "param", "script", NULL);
+	attr_create_rule(a, EXCLUDED, l, NULL);
+
+	a = attr_create("longdesc");
+	l = attr_rule_create_tag_list("img", NULL);
+	attr_create_rule(a, ALLOWED, l, NULL);
+
+	a = attr_create("maxlength");
+	l = attr_rule_create_tag_list("input", NULL);
+	attr_create_rule(a, ALLOWED, l, NULL);
+
+	a = attr_create("media");
+	l = attr_rule_create_tag_list("style", "link", NULL);
+	attr_create_rule(a, ALLOWED, l, NULL);
+
+	a = attr_create("method");
+	l = attr_rule_create_tag_list("form", NULL);
+	attr_create_rule(a, ALLOWED, l, "get", "post", NULL);
+
+	a = attr_create("multiple");
+	l = attr_rule_create_tag_list("select", NULL);
+	attr_create_rule(a, ALLOWED, l, "multiple", NULL);
+
+	a = attr_create("name");
+	l = attr_rule_create_tag_list("textarea", "button", "param", "meta", "input", "select", "a", "map", "object", NULL);
+	attr_create_rule(a, ALLOWED, l, NULL);
+
+	a = attr_create("nohref");
+	l = attr_rule_create_tag_list("area", NULL);
+	attr_create_rule(a, ALLOWED, l, "nohref", NULL);
+
+	a = attr_create("onblur");
+	l = attr_rule_create_tag_list("a", "textarea", "area", "button", "label", "input", "select", NULL);
+	attr_create_rule(a, ALLOWED, l, NULL);
+
+	a = attr_create("onchange");
+	l = attr_rule_create_tag_list("input", "textarea", "select", NULL);
+	attr_create_rule(a, ALLOWED, l, NULL);
+
+	a = attr_create("onfocus");
+	l = attr_rule_create_tag_list("a", "textarea", "area", "button", "label", "input", "select", NULL);
+	attr_create_rule(a, ALLOWED, l, NULL);
+
+	a = attr_create("onload");
+	l = attr_rule_create_tag_list("body", NULL);
+	attr_create_rule(a, ALLOWED, l, NULL);
+
+	a = attr_create("onreset");
+	l = attr_rule_create_tag_list("form", NULL);
+	attr_create_rule(a, ALLOWED, l, NULL);
+
+	a = attr_create("onselect");
+	l = attr_rule_create_tag_list("input", "textarea", NULL);
+	attr_create_rule(a, ALLOWED, l, NULL);
+
+	a = attr_create("onsubmit");
+	l = attr_rule_create_tag_list("form", NULL);
+	attr_create_rule(a, ALLOWED, l, NULL);
+
+	a = attr_create("onunload");
+	l = attr_rule_create_tag_list("body", NULL);
+	attr_create_rule(a, ALLOWED, l, NULL);
+
+	a = attr_create("profile");
+	l = attr_rule_create_tag_list("head", NULL);
+	attr_create_rule(a, ALLOWED, l, NULL);
+
+	a = attr_create("readonly");
+	l = attr_rule_create_tag_list("input", "textarea", NULL);
+	attr_create_rule(a, ALLOWED, l, "readonly", NULL);
+
+	a = attr_create("rel");
+	l = attr_rule_create_tag_list("a", "link", NULL);
+	attr_create_rule(a, ALLOWED, l, NULL);
+
+	a = attr_create("rev");
+	l = attr_rule_create_tag_list("a", "link", NULL);
+	attr_create_rule(a, ALLOWED, l, NULL);
+
+	a = attr_create("rows");
+	l = attr_rule_create_tag_list("textarea", NULL);
+	attr_create_rule(a, REQUIRED, l, NULL);
+
+	a = attr_create("rowspan");
+	l = attr_rule_create_tag_list("td", "th", NULL);
+	attr_create_rule(a, ALLOWED, l, NULL);
+
+	a = attr_create("rules");
+	l = attr_rule_create_tag_list("table", NULL);
+	attr_create_rule(a, ALLOWED, l, "none", "groups", "rows", "cols", "all", NULL);
+
+	a = attr_create("scheme");
+	l = attr_rule_create_tag_list("meta", NULL);
+	attr_create_rule(a, ALLOWED, l, NULL);
+
+	a = attr_create("scope");
+	l = attr_rule_create_tag_list("td", "th", NULL);
+	attr_create_rule(a, ALLOWED, l, "row", "col", "rowgroup", "colgroup", NULL);
+
+	a = attr_create("selected");
+	l = attr_rule_create_tag_list("option", NULL);
+	attr_create_rule(a, ALLOWED, l, "selected", NULL);
+
+	a = attr_create("shape");
+	l = attr_rule_create_tag_list("a", "area", NULL);
+	attr_create_rule(a, ALLOWED, l, "rect", "circle", "poly", "default", NULL);
+
+	a = attr_create("size");
+	l = attr_rule_create_tag_list("input", "select", NULL);
+	attr_create_rule(a, ALLOWED, l, NULL);
+
+	a = attr_create("span");
+	l = attr_rule_create_tag_list("col", "colgroup", NULL);
+	attr_create_rule(a, ALLOWED, l, NULL);
+
+	a = attr_create("src");
+	l = attr_rule_create_tag_list("input", "script", NULL);
+	attr_create_rule(a, ALLOWED, l, NULL);
+	l = attr_rule_create_tag_list("img", NULL);
+	attr_create_rule(a, REQUIRED, l, NULL);
+
+	a = attr_create("standby");
+	l = attr_rule_create_tag_list("object", NULL);
+	attr_create_rule(a, ALLOWED, l, NULL);
+
+	a = attr_create("summary");
+	l = attr_rule_create_tag_list("table", NULL);
+	attr_create_rule(a, ALLOWED, l, NULL);
+
+	a = attr_create("tabindex");
+	l = attr_rule_create_tag_list("a", "textarea", "area", "button", "object", "input", "select", NULL);
+	attr_create_rule(a, ALLOWED, l, NULL);
+
+	a = attr_create("type");
+	l = attr_rule_create_tag_list("style", "script", NULL);
+	attr_create_rule(a, REQUIRED, l, NULL);
+	l = attr_rule_create_tag_list("button", NULL);
+	attr_create_rule(a, ALLOWED, l, "button", "submit", "reset", NULL);
+	l = attr_rule_create_tag_list("a", "object", "link", "param", NULL);
+	attr_create_rule(a, ALLOWED, l, NULL);
+	l = attr_rule_create_tag_list("input", NULL);
+	attr_create_rule(a, ALLOWED, l, "text", "password", "checkbox", "radio", "submit", "reset", "file", "hidden", "image", "button", NULL);
+
+	a = attr_create("usemap");
+	l = attr_rule_create_tag_list("input", "object", "img", NULL);
+	attr_create_rule(a, ALLOWED, l, NULL);
+
+	a = attr_create("valign");
+	l = attr_rule_create_tag_list("colgroup", "tr", "tbody", "tfoot", "th", "td", "col", "thead", NULL);
+	attr_create_rule(a, ALLOWED, l, "top", "middle", "bottom", "baseline", NULL);
+
+	a = attr_create("value");
+	l = attr_rule_create_tag_list("input", "button", "option", "param", NULL);
+	attr_create_rule(a, ALLOWED, l, NULL);
+
+	a = attr_create("valuetype");
+	l = attr_rule_create_tag_list("param", NULL);
+	attr_create_rule(a, ALLOWED, l, "data", "ref", "object", NULL);
+
+	a = attr_create("width");
+	l = attr_rule_create_tag_list("table", "object", "col", "img", "colgroup", NULL);
+	attr_create_rule(a, ALLOWED, l, NULL);
 }
 
 void attr_free() {}

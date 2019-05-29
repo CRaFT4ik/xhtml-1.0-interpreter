@@ -5,11 +5,13 @@
 	+ - 1 или более совпадений подряд
 	* - 0 или более совпадений подряд
 	? - 0 или 1 совпадение
+
+	// TODO: сделать проверку для REQUIRED, сделать проверку на допустимые значения.
 */
 
 %{
 
-#include "y_tab.h"
+#include "y.tab.h"
 
 #include <stdio.h>
 #include <ctype.h>
@@ -20,13 +22,12 @@
 #include "attributes.c"
 #include "stack.c"
 
-#define DEBUG
+int DEBUG_MODE = 0;
 
 void debug(char *str)
 {
-	#ifdef DEBUG
-	printf("%s", str);
-	#endif
+	if (DEBUG_MODE)
+		printf("%s", str);
 }
 
 %}
@@ -36,6 +37,7 @@ void debug(char *str)
 %x state_start_tag_need_closed
 %s state_expected_end_tag
 %x state_doctype_expected
+%x state_inside_cdata
 
 EC					([ \t\r\n]+)
 Digit				[0-9]
@@ -53,12 +55,14 @@ UnknownInfo     	"<?"{Title}[^?]*[?]+([^?>][^?]*[?]+)*">"
 PIInfo          	"<?"{Title}({EC}[^?]*)?[?]+([^?>][^?]*[?]+)*">"
 
 DoctypeDecl			"<!"[dD][oO][cC][tT][yY][pP][eE][^<!>]*">"
-DoctypeInfo			"<!DOCTYPE"{EC}+"html"{EC}+"PUBLIC"{EC}+"\"-//W3C//DTD XHTML 1.0 Strict//EN\""{EC}+("\"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\""|"\"DTD/xhtml1-strict.dtd\"")">"
+DoctypeInfo			"<!DOCTYPE"{EC}+"html"{EC}+"PUBLIC"{EC}+"\"-//W3C//DTD XHTML 1.0 Strict//EN\""{EC}+("\"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\""|"\"DTD/xhtml1-strict.dtd\""){EC}*">"
 
 Comment         	"<!--"([^-]|-[^-]|--+[^->])*-*"-->"
+CDataStart			"<![CDATA["
+CDataEnd			"]]>"
 
 AttrName			{Title}
-AttrValue        	(\"[^<&"]*\")|("'"[^<&']*"'")
+AttrValue        	(\"[^<"]*\")|("'"[^<']*"'")
 Attribute			{AttrName}{EC}?[=]{EC}?{AttrValue}
 
 %%
@@ -77,6 +81,20 @@ Attribute			{AttrName}{EC}?[=]{EC}?{AttrValue}
 						debug("PI_INFO");
 						return PI_INFO;
 					}
+
+{CDataStart}		{
+						yy_push_state(state_inside_cdata);
+					}
+
+<state_inside_cdata>{
+{CDataEnd}			{
+						debug("CDATA");
+						yy_pop_state();
+						return CDATA;
+					}
+
+[ \t\r\n]|.?		; // Пропускаем любые символы. 
+}
 
 {DoctypeDecl}		{
 						yy_push_state(state_doctype_expected);
@@ -148,15 +166,9 @@ Attribute			{AttrName}{EC}?[=]{EC}?{AttrValue}
 						yy_pop_state();
 						return TAG_END;
 					}
-
-"</"{Title}">"		{
-						debug("LEX_ERROR");
-						yyerror("unknown tag %s", yytext);
-						yy_pop_state();
-						return LEX_ERROR;
-					}
 }
 
 [\r\n]+				{	debug(yytext);	}
+.?                	{	debug(yytext);	} // Любой не распознанный символ (обычно простой текст).
 
 %%
