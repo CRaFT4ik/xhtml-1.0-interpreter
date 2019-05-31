@@ -10,14 +10,14 @@ typedef struct // Описывает атрибуты, содержащиеся 
 	attr *attribute;
 	char *value;
 
-	struct attr_desc *next;
-} attr_desc;
+	struct stack_attr *next;
+} stack_attr;
 
 typedef struct
 {
 	char tag_name[32];
 	struct stack_elem *list_nested;			// Список тегов, содержащихся в данном.
-	attr_desc *list_attributes;				// Список атрибутов данного тега.
+	stack_attr *list_attributes;		// Список атрибутов данного тега.
 
 	struct stack_elem *next;				// Для образования общего списка тегов.
 } stack_elem;
@@ -27,7 +27,7 @@ stack_elem *head;
 static stack_elem * stack_create_elem(char *tag_name);
 static void stack_free_elem(stack_elem *elem);
 static void stack_list_nested_push(stack_elem *elem, char *nested_name);
-static void stack_attr_desc_push(stack_elem *dest, attr *at, char *val);
+static void stack_attr_push(stack_elem *dest, attr *at, char *val);
 static int stack_tag_count(char *tag);
 static int stack_count();
 static int stack_is_list_contains(stack_elem *list, char *tg_name);
@@ -109,7 +109,7 @@ void stack_show()
 		if (tmp->list_attributes != NULL)
 		{
 			printf(" [");
-			attr_desc *t = tmp->list_attributes;
+			stack_attr *t = tmp->list_attributes;
 			while (t)
 			{
 				printf(" %s", t->attribute->name);
@@ -166,7 +166,7 @@ void stack_push_attribute(char *attr_name_val)
 	else if (!attr_can_contains_value(last_elem->tag_name, at, value))
 		yyerror("stack_push_attribute: attribute '%s' can't be '%s'", attr_name, value);
 	else
-		stack_attr_desc_push(last_elem, at, value);
+		stack_attr_push(last_elem, at, value);
 }
 
 // -----------------------------------------------------------------------------
@@ -228,16 +228,16 @@ static void stack_list_nested_push(stack_elem *elem, char *nested_name)
 			tmp = tmp->next;
 }
 
-static void stack_attr_desc_push(stack_elem *dest, attr *at, char *val)
+static void stack_attr_push(stack_elem *dest, attr *at, char *val)
 {
 	if (dest == NULL || at == NULL || val == NULL) return;
 
-	attr_desc *new = (attr_desc *) malloc(sizeof(attr_desc));
-	memset(new, 0, sizeof(attr_desc));
+	stack_attr *new = (stack_attr *) malloc(sizeof(stack_attr));
+	memset(new, 0, sizeof(stack_attr));
 	new->attribute = at;
 	new->value = val;
 
-	attr_desc *tmp = dest->list_attributes;
+	stack_attr *tmp = dest->list_attributes;
 	if (tmp == NULL) { dest->list_attributes = new; return; }
 
 	while (tmp)
@@ -298,6 +298,21 @@ static stack_elem * stack_get_elem_by_id(int id)
 	return NULL;
 }
 
+static int stack_is_contains_attribute(stack_attr *list, attr *pattr)
+{
+	if (list == NULL || pattr == NULL)
+		return 0;
+
+	while (list)
+	{
+		if (list->attribute == pattr)
+			return 1;
+		list = list->next;
+	}
+
+	return 0;
+}
+
 // Проверка соответствия иерархии тегов стандарту XHTML 1.0.
 static void stack_pop_check_standard(char *tg_name, int is_short_tag_form)
 {
@@ -314,6 +329,26 @@ static void stack_pop_check_standard(char *tg_name, int is_short_tag_form)
 
 	tag *tg = tags_get(tg_name);
 	if (tg == NULL) yyerror("stack_pop_check_standard: unknown tag '%s'", tg_name);
+
+	{ // Проверка тега на наличие требуемых атрибутов.
+		attr *at = list_attr;
+		while (at)
+		{
+			attr_rule *rule = at->rule_list;
+			while (rule)
+			{
+				if (rule->type != REQUIRED || !attr_is_rule_applicable_to_tag(rule, tg_name))
+					goto next;
+
+				if (!stack_is_contains_attribute(last_elem->list_attributes, at))
+					yyerror("stack_pop_check_standard: tag '%s' must contain attribute '%s'", tg_name, at->name);
+
+				next: rule = rule->next;
+			}
+
+			at = at->next;
+		}
+	}
 
 	{ // Проверка min_list списка (см. объявление).
 		int min_contains = (tg->min_list[0] == NULL);

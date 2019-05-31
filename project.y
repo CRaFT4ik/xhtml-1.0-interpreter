@@ -56,7 +56,9 @@
 		va_end(ap);
 
 		printf(" :: (line #%d of the input file)\n", yylineno);
-		system("pause");
+		printf("See cheat sheet here: %s\n", "https://www.w3.org/2010/04/xhtml10-strict.html");
+
+		if (DEBUG_MODE) system("pause");
 		exit(-1);
 	}
 %}
@@ -132,18 +134,18 @@ content			:	content tag other
 		stack_init();
 
 		if (!yyparse())
-			printf("\nyyparse(): parsing successful! :)\n\n");
+			printf("\n\nyyparse(): parsing successful! :)\nCompliance with XHTML 1.0 Strict standard.\n\n");
 		else
-			printf("\nyyparse(): error during parsing! :(\n\n");
+			printf("\n\nyyparse(): error during parsing! :(\n\n");
 
 		stack_free();
 		attr_free();
 		tags_free();
 
-		system("pause");
+		if (DEBUG_MODE) system("pause");
 		return 0;
 
 usage:  printf("usage: %s <params> <input file>\nparams: -d - use debug mode\n", argv[0]);
-		system("pause");
+		if (DEBUG_MODE) system("pause");
 		return 0;
 	}

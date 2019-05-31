@@ -119,12 +119,14 @@
 		va_end(ap);
 
 		printf(" :: (line #%d of the input file)\n", yylineno);
-		system("pause");
+		printf("See cheat sheet here: %s\n", "https://www.w3.org/2010/04/xhtml10-strict.html");
+
+		if (DEBUG_MODE) system("pause");
 		exit(-1);
 	}
 
 /* Line 371 of yacc.c  */
-#line 128 "y.tab.c"
+#line 130 "y.tab.c"
 
 # ifndef YY_NULL
 #  if defined __cplusplus && 201103L <= __cplusplus
@@ -214,7 +216,7 @@ int yyparse ();
 /* Copy the second part of user declarations.  */
 
 /* Line 390 of yacc.c  */
-#line 218 "y.tab.c"
+#line 220 "y.tab.c"
 
 #ifdef short
 # undef short
@@ -506,8 +508,8 @@ static const yytype_int8 yyrhs[] =
 /* YYRLINE[YYN] -- source line where rule number YYN was defined.  */
 static const yytype_uint8 yyrline[] =
 {
-       0,    72,    72,    75,    76,    79,    80,    81,    84,    87,
-      88,    91,    92,    95,    96,    97
+       0,    74,    74,    77,    78,    81,    82,    83,    86,    89,
+      90,    93,    94,    97,    98,    99
 };
 #endif
 
@@ -1411,19 +1413,19 @@ yyreduce:
     {
         case 7:
 /* Line 1792 of yacc.c  */
-#line 81 "..\\project.y"
+#line 83 "..\\project.y"
     { yyval = 0; }
     break;
 
   case 10:
 /* Line 1792 of yacc.c  */
-#line 88 "..\\project.y"
+#line 90 "..\\project.y"
     { yyval = 0; }
     break;
 
 
 /* Line 1792 of yacc.c  */
-#line 1427 "y.tab.c"
+#line 1429 "y.tab.c"
       default: break;
     }
   /* User semantic actions sometimes alter yychar, and that requires
@@ -1655,7 +1657,7 @@ yyreturn:
 
 
 /* Line 2055 of yacc.c  */
-#line 100 "..\\project.y"
+#line 102 "..\\project.y"
 
 
 	int main(int argc, char *argv[])
@@ -1691,18 +1693,18 @@ yyreturn:
 		stack_init();
 
 		if (!yyparse())
-			printf("\nyyparse(): parsing successful! :)\n\n");
+			printf("\n\nyyparse(): parsing successful! :)\nCompliance with XHTML 1.0 Strict standard.\n\n");
 		else
-			printf("\nyyparse(): error during parsing! :(\n\n");
+			printf("\n\nyyparse(): error during parsing! :(\n\n");
 
 		stack_free();
 		attr_free();
 		tags_free();
 
-		system("pause");
+		if (DEBUG_MODE) system("pause");
 		return 0;
 
 usage:  printf("usage: %s <params> <input file>\nparams: -d - use debug mode\n", argv[0]);
-		system("pause");
+		if (DEBUG_MODE) system("pause");
 		return 0;
 	}

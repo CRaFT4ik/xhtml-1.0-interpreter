@@ -175,27 +175,6 @@ static int attr_is_rule_applicable_to_tag(attr_rule *rule, char *tg_name)
 	return 0;
 }
 
-// Проверка, содержит ли список allowed_values из правила rule значение value.
-static int attr_is_rule_values_list_contain(attr_rule *rule, char *value)
-{
-	assert(rule != NULL); assert(value != NULL);
-
-	// Если список allowed_values пуст, то он содержит все значения.
-	if (rule->allowed_values[0] == NULL)
-		return 1;
-
-	for (int i = 0; i < sizeof(rule->allowed_values)/sizeof(rule->allowed_values[0]); i++)
-	{
-		char *c_value = rule->allowed_values[i];
-		if (c_value == NULL) break;
-
-		if (strcmp(c_value, value) == 0)
-			return 1;
-	}
-
-	return 0;
-}
-
 // Получить первое примененное правило атрибута at к тегу tg_name.
 static attr_rule * attr_get_first_applied_rule(char *tg_name, attr *at)
 {
@@ -218,6 +197,27 @@ static attr_rule * attr_get_first_applied_rule(char *tg_name, attr *at)
 
 	debug("[WARN] attr_get_first_applied_rule: there's no rule for tag '%s' and attribute '%s'\n", tg_name, at->name);
 	return NULL;
+}
+
+// Проверка, содержит ли список allowed_values из правила rule значение value.
+int attr_is_rule_values_list_contain(attr_rule *rule, char *value)
+{
+	assert(rule != NULL); assert(value != NULL);
+
+	// Если список allowed_values пуст, то он содержит все значения.
+	if (rule->allowed_values[0] == NULL)
+		return 1;
+
+	for (int i = 0; i < sizeof(rule->allowed_values)/sizeof(rule->allowed_values[0]); i++)
+	{
+		char *c_value = rule->allowed_values[i];
+		if (c_value == NULL) break;
+
+		if (strcmp(c_value, value) == 0)
+			return 1;
+	}
+
+	return 0;
 }
 
 attr * attr_get(char *name)
@@ -364,6 +364,10 @@ void attr_init()
 
 	a = attr_create("axis");
 	l = attr_rule_create_tag_list("td", "th", NULL);
+	attr_create_rule(a, ALLOWED, l, NULL);
+
+	a = attr_create("border");
+	l = attr_rule_create_tag_list("table", NULL);
 	attr_create_rule(a, ALLOWED, l, NULL);
 
 	a = attr_create("cellpadding");
