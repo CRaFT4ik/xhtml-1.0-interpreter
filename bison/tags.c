@@ -1,5 +1,7 @@
-// https://www.w3.org/2010/04/xhtml10-strict.html
-
+/*
+ * Coded by Eldar Timraleev (aka CRaFT4ik) © 2019.
+ */
+ 
 #include <stdio.h>
 #include <ctype.h>
 #include <string.h>

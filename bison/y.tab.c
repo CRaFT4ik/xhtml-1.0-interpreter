@@ -63,7 +63,7 @@
 
 /* Copy the first part of user declarations.  */
 /* Line 371 of yacc.c  */
-#line 4 "..\\project.y"
+#line 5 "..\\project.y"
 
 	#define alloca malloc
 
@@ -508,8 +508,8 @@ static const yytype_int8 yyrhs[] =
 /* YYRLINE[YYN] -- source line where rule number YYN was defined.  */
 static const yytype_uint8 yyrline[] =
 {
-       0,    74,    74,    77,    78,    81,    82,    83,    86,    89,
-      90,    93,    94,    97,    98,    99
+       0,    75,    75,    78,    79,    82,    83,    84,    87,    90,
+      91,    94,    95,    98,    99,   100
 };
 #endif
 
@@ -1413,13 +1413,13 @@ yyreduce:
     {
         case 7:
 /* Line 1792 of yacc.c  */
-#line 83 "..\\project.y"
+#line 84 "..\\project.y"
     { yyval = 0; }
     break;
 
   case 10:
 /* Line 1792 of yacc.c  */
-#line 90 "..\\project.y"
+#line 91 "..\\project.y"
     { yyval = 0; }
     break;
 
@@ -1657,7 +1657,7 @@ yyreturn:
 
 
 /* Line 2055 of yacc.c  */
-#line 102 "..\\project.y"
+#line 103 "..\\project.y"
 
 
 	int main(int argc, char *argv[])

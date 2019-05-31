@@ -1,3 +1,7 @@
+/*
+ * Coded by Eldar Timraleev (aka CRaFT4ik) © 2019.
+ */
+ 
 #include <stdio.h>
 #include <ctype.h>
 #include <string.h>

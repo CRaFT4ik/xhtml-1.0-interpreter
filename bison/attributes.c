@@ -1,3 +1,7 @@
+/*
+ * Coded by Eldar Timraleev (aka CRaFT4ik) © 2019.
+ */
+ 
 #include <stdio.h>
 #include <ctype.h>
 #include <string.h>
@@ -300,32 +304,42 @@ void attr_init()
 	l = attr_rule_create_tag_list("head", "title", "script", "style", "param", "base", "meta", "html", NULL);
 	attr_create_rule(a, EXCLUDED, l, NULL);
 
+	#define SET_1 "head", "title", "script", "style", "param", "base", "meta", "br", "html"
+
 	a = attr_create("onclick");
-	l = attr_rule_create_tag_list("head", "title", "script", "style", "param", "base", "meta", "br", "html", NULL);
+	l = attr_rule_create_tag_list(SET_1, NULL);
 	attr_create_rule(a, EXCLUDED, l, NULL);
 
 	a = attr_create("ondblclick");
+	l = attr_rule_create_tag_list(SET_1, NULL);
 	attr_create_rule(a, EXCLUDED, l, NULL);
 
 	a = attr_create("onkeydown");
+	l = attr_rule_create_tag_list(SET_1, NULL);
 	attr_create_rule(a, EXCLUDED, l, NULL);
 
 	a = attr_create("onkeypress");
+	l = attr_rule_create_tag_list(SET_1, NULL);
 	attr_create_rule(a, EXCLUDED, l, NULL);
 
 	a = attr_create("onmousedown");
+	l = attr_rule_create_tag_list(SET_1, NULL);
 	attr_create_rule(a, EXCLUDED, l, NULL);
 
 	a = attr_create("onmousemove");
+	l = attr_rule_create_tag_list(SET_1, NULL);
 	attr_create_rule(a, EXCLUDED, l, NULL);
 
 	a = attr_create("onmouseout");
+	l = attr_rule_create_tag_list(SET_1, NULL);
 	attr_create_rule(a, EXCLUDED, l, NULL);
 
 	a = attr_create("onmouseover");
+	l = attr_rule_create_tag_list(SET_1, NULL);
 	attr_create_rule(a, EXCLUDED, l, NULL);
 
 	a = attr_create("onmouseup");
+	l = attr_rule_create_tag_list(SET_1, NULL);
 	attr_create_rule(a, EXCLUDED, l, NULL);
 
 	a = attr_create("abbr");
@@ -661,4 +675,27 @@ void attr_init()
 	attr_create_rule(a, ALLOWED, l, NULL);
 }
 
-void attr_free() {}
+void attr_free()
+{
+	attr *at = list_attr, *tmp_at;
+	while (at)
+	{
+		attr_rule *rule = at->rule_list, *tmp_rule;
+		while (rule)
+		{
+			if (rule->tag_list != NULL)
+				free(rule->tag_list);
+
+			for (int i = 0; i < sizeof(rule->allowed_values)/sizeof(rule->allowed_values[0]); i++)
+				if (rule->allowed_values[i] != NULL) free(rule->allowed_values[i]);
+
+			tmp_rule = rule->next;
+			free(rule);
+			rule = tmp_rule;
+		}
+
+		tmp_at = at->next;
+		free(at);
+		at = tmp_at;
+	}
+}

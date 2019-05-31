@@ -1,17 +1,6 @@
 /*
-	http://westes.github.io/flex/manual/
-	https://www.w3.org/2010/04/xhtml10-strict.html
-
-	+ - 1 или более совпадений подряд
-	* - 0 или более совпадений подряд
-	? - 0 или 1 совпадение
-
-	TODO:
-		[+] сделать проверку на пустоту тега (может ли иметь вид </tag> или <tag />);
-		[+] сделать проверку для attributes REQUIRED rule;
-		[+] сделать проверку на допустимые значения атрибутов;
-		[-] нет очистки памяти для attributes.c.
-*/
+ * Coded by Eldar Timraleev (aka CRaFT4ik) © 2019.
+ */
 
 %{
 

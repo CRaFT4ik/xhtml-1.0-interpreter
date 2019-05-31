@@ -1,5 +1,6 @@
-
-/* Coded by Eldar Timraleev (aka CRaFT4ik) © 2019 */
+/*
+ * Coded by Eldar Timraleev (aka CRaFT4ik) © 2019.
+ */
 
 %{
 	#define alloca malloc
