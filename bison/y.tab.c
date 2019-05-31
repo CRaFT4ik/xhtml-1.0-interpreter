@@ -74,40 +74,41 @@
 	#include <stdarg.h>
 	#include <locale.h>
 
-	extern int yylineno; // Номер строки с ошибкой.;
+	extern int yylineno; // Номер строки с ошибкой.
 	extern int DEBUG_MODE;
 
 	void yyerror(char *str, ...)
 	{
-		stack_show();
-
 		if (str == NULL) return;
-		int need_extra_out = 0;
-		int i, *p = &str; char c, *s;
+
+		if (DEBUG_MODE)
+			stack_show();
 
 		printf("\nERROR: ");
 
+		va_list ap;
+		va_start(ap, str);
 		while (*str != '\0')
 		{
-			if (*str == '%' && (*(str + 1) == 'd' || *(str + 1) == 'c' || *(str + 1) == 's'))
+			if (*str == '%' && *(str + 1) != '\0')
 			{
 				str++;
 				switch (*str)
 				{
 					case 'd':
-						p += 1;
-						i = *(int *) p;
+						int i = va_arg(ap, int);
 						printf("%d", i);
 						break;
 					case 'c':
-						p += 1;
-						c = *(int *) p;
+						char c = va_arg(ap, char);
 						printf("%c", c);
 						break;
 					case 's':
-						p += 1;
-						s = *(char **) p;
+						char *s = va_arg(ap, char *);
 						printf("%s", s);
+						break;
+					default:
+						printf("yyerror: unknown parameter '%c'\n", *str);
 						break;
 				}
 			} else
@@ -115,6 +116,7 @@
 
 			str++;
 		}
+		va_end(ap);
 
 		printf(" :: (line #%d of the input file)\n", yylineno);
 		system("pause");
@@ -122,7 +124,7 @@
 	}
 
 /* Line 371 of yacc.c  */
-#line 126 "y.tab.c"
+#line 128 "y.tab.c"
 
 # ifndef YY_NULL
 #  if defined __cplusplus && 201103L <= __cplusplus
@@ -212,7 +214,7 @@ int yyparse ();
 /* Copy the second part of user declarations.  */
 
 /* Line 390 of yacc.c  */
-#line 216 "y.tab.c"
+#line 218 "y.tab.c"
 
 #ifdef short
 # undef short
@@ -504,8 +506,8 @@ static const yytype_int8 yyrhs[] =
 /* YYRLINE[YYN] -- source line where rule number YYN was defined.  */
 static const yytype_uint8 yyrline[] =
 {
-       0,    70,    70,    73,    74,    77,    78,    79,    82,    85,
-      86,    89,    90,    93,    94,    95
+       0,    72,    72,    75,    76,    79,    80,    81,    84,    87,
+      88,    91,    92,    95,    96,    97
 };
 #endif
 
@@ -1409,19 +1411,19 @@ yyreduce:
     {
         case 7:
 /* Line 1792 of yacc.c  */
-#line 79 "..\\project.y"
+#line 81 "..\\project.y"
     { yyval = 0; }
     break;
 
   case 10:
 /* Line 1792 of yacc.c  */
-#line 86 "..\\project.y"
+#line 88 "..\\project.y"
     { yyval = 0; }
     break;
 
 
 /* Line 1792 of yacc.c  */
-#line 1425 "y.tab.c"
+#line 1427 "y.tab.c"
       default: break;
     }
   /* User semantic actions sometimes alter yychar, and that requires
@@ -1653,7 +1655,7 @@ yyreturn:
 
 
 /* Line 2055 of yacc.c  */
-#line 98 "..\\project.y"
+#line 100 "..\\project.y"
 
 
 	int main(int argc, char *argv[])

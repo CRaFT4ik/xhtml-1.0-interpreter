@@ -21,9 +21,9 @@ PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
 	</p>
 	
 	<div id="quickSearch">
-		<form method="get" action="search.php" name="qsearch">
+		<form method="post" action="search.php" id="qsearch">
 		<div>
-			<input class="inputText" />
+			<input class="inputText" readonly="readonly" />
 			<input type="hidden" id="act" name="act" value="quick" />
 			<input style="display: none;" class="inputSubmit" type="submit" value="Go" />
 			<script type="text/javascript">

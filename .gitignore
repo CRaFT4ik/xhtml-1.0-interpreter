@@ -333,4 +333,6 @@ ASALocalRun/
 bison/*.output
 bison/y_tab.c
 bison/y_tab.h
+bison/y.tab.c
+bison/y.tab.h
 bison/lex.yy.c

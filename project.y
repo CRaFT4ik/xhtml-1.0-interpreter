@@ -11,40 +11,41 @@
 	#include <stdarg.h>
 	#include <locale.h>
 
-	extern int yylineno; // Номер строки с ошибкой.;
+	extern int yylineno; // Номер строки с ошибкой.
 	extern int DEBUG_MODE;
 
 	void yyerror(char *str, ...)
 	{
-		stack_show();
-
 		if (str == NULL) return;
-		int need_extra_out = 0;
-		int i, *p = &str; char c, *s;
+
+		if (DEBUG_MODE)
+			stack_show();
 
 		printf("\nERROR: ");
 
+		va_list ap;
+		va_start(ap, str);
 		while (*str != '\0')
 		{
-			if (*str == '%' && (*(str + 1) == 'd' || *(str + 1) == 'c' || *(str + 1) == 's'))
+			if (*str == '%' && *(str + 1) != '\0')
 			{
 				str++;
 				switch (*str)
 				{
 					case 'd':
-						p += 1;
-						i = *(int *) p;
+						int i = va_arg(ap, int);
 						printf("%d", i);
 						break;
 					case 'c':
-						p += 1;
-						c = *(int *) p;
+						char c = va_arg(ap, char);
 						printf("%c", c);
 						break;
 					case 's':
-						p += 1;
-						s = *(char **) p;
+						char *s = va_arg(ap, char *);
 						printf("%s", s);
+						break;
+					default:
+						printf("yyerror: unknown parameter '%c'\n", *str);
 						break;
 				}
 			} else
@@ -52,6 +53,7 @@
 
 			str++;
 		}
+		va_end(ap);
 
 		printf(" :: (line #%d of the input file)\n", yylineno);
 		system("pause");

@@ -158,14 +158,15 @@ void stack_push_attribute(char *attr_name_val)
 	char *value = (char *) malloc(sizeof(char) * (strlen(v) + 1));
 	sprintf(value, "%s", v);
 
-	// !!!
-	//attr *at = attr_get(attr_name);
-	//if (at == NULL) { yyerror("stack_push_attribute: unknown attribute '%s'", attr_name); return; }
+	attr *at = attr_get(attr_name);
+	if (at == NULL) { yyerror("stack_push_attribute: unknown attribute '%s'", attr_name); return; }
 
-	//if (!attr_is_allowed_for_tag(last_elem->tag_name, at, value))
-	//	yyerror("stack_push_attribute: attribute '%s' is not allowed here", attr_name);
-	//else
-	//	stack_attr_desc_push(last_elem, at, value);
+	if (!attr_is_allowed_for_tag(last_elem->tag_name, at))
+		yyerror("stack_push_attribute: attribute '%s' is not allowed here", attr_name);
+	else if (!attr_can_contains_value(last_elem->tag_name, at, value))
+		yyerror("stack_push_attribute: attribute '%s' can't be '%s'", attr_name, value);
+	else
+		stack_attr_desc_push(last_elem, at, value);
 }
 
 // -----------------------------------------------------------------------------

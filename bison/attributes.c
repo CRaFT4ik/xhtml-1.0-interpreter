@@ -145,6 +145,81 @@ static attr_rule * attr_create_rule(attr *a, enum attr_rule_type type, tag **tag
 	return NULL;
 }
 
+// Применимо ли правило rule для тега tg_name.
+static int attr_is_rule_applicable_to_tag(attr_rule *rule, char *tg_name)
+{
+	assert(rule != NULL); assert(tg_name != NULL);
+
+	enum attr_rule_type type = rule->type;
+
+	if (rule->tag_list == NULL)
+		if (type == ALLOWED || type == DENIED)
+			// Разрешающее\запрещающее правило без тегов включает в себя любой тег.
+			return 1;
+		else if (type == EXCLUDED || type == REQUIRED)
+			// Исключающее\требующее правило без тегов не включает никакой тег.
+			return 0;
+		else
+			return 0;
+
+	for (int i = 0; i < NTAGS; i++)
+	{
+		tag *tg_tmp = *(rule->tag_list + i);
+		if (tg_tmp == NULL)
+			return 0;
+
+		if (strcmp(tg_tmp->name, tg_name) == 0)
+			return 1;
+	}
+
+	return 0;
+}
+
+// Проверка, содержит ли список allowed_values из правила rule значение value.
+static int attr_is_rule_values_list_contain(attr_rule *rule, char *value)
+{
+	assert(rule != NULL); assert(value != NULL);
+
+	// Если список allowed_values пуст, то он содержит все значения.
+	if (rule->allowed_values[0] == NULL)
+		return 1;
+
+	for (int i = 0; i < sizeof(rule->allowed_values)/sizeof(rule->allowed_values[0]); i++)
+	{
+		char *c_value = rule->allowed_values[i];
+		if (c_value == NULL) break;
+
+		if (strcmp(c_value, value) == 0)
+			return 1;
+	}
+
+	return 0;
+}
+
+// Получить первое примененное правило атрибута at к тегу tg_name.
+static attr_rule * attr_get_first_applied_rule(char *tg_name, attr *at)
+{
+	assert(tg_name != NULL); assert(at != NULL);
+
+	attr_rule *rule = at->rule_list;
+	while (rule)
+	{
+		enum attr_rule_type type = rule->type;
+		int applicable = attr_is_rule_applicable_to_tag(rule, tg_name);
+
+		if ((type == ALLOWED	&& applicable)
+		 || (type == DENIED		&& applicable)
+		 || (type == EXCLUDED	&& !applicable)
+		 || (type == REQUIRED	&& applicable))
+			return rule;
+
+		rule = rule->next;
+	}
+
+	debug("[WARN] attr_get_first_applied_rule: there's no rule for tag '%s' and attribute '%s'\n", tg_name, at->name);
+	return NULL;
+}
+
 attr * attr_get(char *name)
 {
 	attr *tmp = list_attr;
@@ -158,73 +233,34 @@ attr * attr_get(char *name)
 	return NULL;
 }
 
-// Проверка, может ли тег tg_name содержать атрибут at со значением value.
-int attr_is_allowed_for_tag(char *tg_name, attr *at, char *value)
+// Проверка, может ли атрибут at иметь значение value.
+int attr_can_contains_value(char *tg_name, attr *at, char *value)
 {
 	assert(tg_name != NULL); assert(at != NULL); assert(value != NULL);
 
-	attr_rule *rule = at->rule_list;
-	while (rule)
-	{
-		enum attr_rule_type type = rule->type;
-		if (type == ALLOWED)
-		{
-			// Разрешающее правило без тегов - разрешает всем.
-			if (rule->tag_list == NULL) return 1;
+	if (!attr_is_allowed_for_tag(tg_name, at)) return 0;
 
-			for (int i = 0; i < NTAGS; i++)
-			{
-				tag *tg_tmp = *(rule->tag_list + i);
-				if (tg_tmp == NULL) break;
+	attr_rule *rule = attr_get_first_applied_rule(tg_name, at);
+	assert(rule != NULL);
 
-				if (strcmp(tg_tmp->name, tg_name) == 0)
-					return 1;
-			}
-		} else if (type == DENIED)
-		{
-			// Запрещающее правило без тегов - запрещает всем.
-			if (rule->tag_list == NULL) return 0;
+	if (attr_is_rule_values_list_contain(rule, value))
+		return 1;
 
-			for (int i = 0; i < NTAGS; i++)
-			{
-				tag *tg_tmp = *(rule->tag_list + i);
-				if (tg_tmp == NULL) break;
+	return 0;
+}
 
-				if (strcmp(tg_tmp->name, tg_name) == 0)
-					return 0;
-			}
-		} else if (type == EXCLUDED)
-		{
-			// Исключающее правило без тегов - разрешаем всем.
-			if (rule->tag_list == NULL) return 1;
+// Проверка, может ли тег tg_name содержать атрибут at.
+int attr_is_allowed_for_tag(char *tg_name, attr *at)
+{
+	assert(tg_name != NULL); assert(at != NULL);
 
-			int contains = 0;
-			for (int i = 0; i < NTAGS; i++)
-			{
-				tag *tg_tmp = *(rule->tag_list + i);
-				if (tg_tmp == NULL) break;
+	attr_rule *rule = attr_get_first_applied_rule(tg_name, at);
+	if (rule == NULL)
+		return 0;
 
-				if (strcmp(tg_tmp->name, tg_name) == 0)
-				{ contains = 1; break; }
-			}
-			if (!contains) return 1;
-		} else if (type == REQUIRED)
-		{
-			// Требующее правило без тегов - пустое правило.
-			if (rule->tag_list == NULL) goto next;
-
-			for (int i = 0; i < NTAGS; i++)
-			{
-				tag *tg_tmp = *(rule->tag_list + i);
-				if (tg_tmp == NULL) break;
-
-				if (strcmp(tg_tmp->name, tg_name) == 0)
-					return 1;
-			}
-		}
-
-		next: rule = rule->next;
-	}
+	enum attr_rule_type type = rule->type;
+	if (type == ALLOWED || type == EXCLUDED || type == REQUIRED)
+		return 1;
 
 	return 0;
 }
@@ -246,7 +282,7 @@ void attr_init()
 	l = attr_rule_create_tag_list("head", "title", "script", "style", "param", "base", "meta", "html", NULL);
 	attr_create_rule(a, EXCLUDED, l, NULL);
 
-	a = attr_create("map");
+	a = attr_create("id");
 	l = attr_rule_create_tag_list("map", NULL);
 	attr_create_rule(a, EXCLUDED, l, NULL);
 	l = attr_rule_create_tag_list("map", NULL);

@@ -9,7 +9,7 @@
 	TODO:
 		[+] сделать проверку на пустоту тега (может ли иметь вид </tag> или <tag />);
 		[-] сделать проверку для attributes REQUIRED rule;
-		[-] сделать проверку на допустимые значения атрибутов;
+		[+] сделать проверку на допустимые значения атрибутов;
 		[-] нет очистки памяти для attributes.c.
 */
 
@@ -21,18 +21,50 @@
 #include <ctype.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdarg.h>
+
+int DEBUG_MODE = 0;
+
+void debug(char *str, ...)
+{
+	if (!DEBUG_MODE) return;
+
+	va_list ap;
+	va_start(ap, str);
+	while (*str != '\0')
+	{
+		if (*str == '%' && *(str + 1) != '\0')
+		{
+			str++;
+			switch (*str)
+			{
+				case 'd':
+					int i = va_arg(ap, int);
+					printf("%d", i);
+					break;
+				case 'c':
+					char c = va_arg(ap, char);
+					printf("%c", c);
+					break;
+				case 's':
+					char *s = va_arg(ap, char *);
+					printf("%s", s);
+					break;
+				default:
+					printf("debug: unknown parameter '%c'\n", *str);
+					break;
+			}
+		} else
+			printf("%c", *str);
+
+		str++;
+	}
+	va_end(ap);
+}
 
 #include "tags.c"
 #include "attributes.c"
 #include "stack.c"
-
-int DEBUG_MODE = 0;
-
-void debug(char *str)
-{
-	if (DEBUG_MODE)
-		printf("%s", str);
-}
 
 %}
 
